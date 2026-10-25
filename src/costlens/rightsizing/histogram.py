@@ -58,7 +58,17 @@ class HistogramOptions:
         raw = np.floor(
             np.log1p(clipped * (self.ratio - 1) / self.first_bucket) / math.log(self.ratio)
         )
-        return np.clip(raw, 0, self.n_buckets - 1).astype(np.int64)
+        idx = np.clip(raw, 0, self.n_buckets - 1).astype(np.int64)
+        # log/exp rounding differs across libm builds; a value sitting on a bucket edge could
+        # land one bucket low or high. Snap to the bucket whose [start, next start) holds it.
+        starts = np.asarray(self.bucket_start(idx))
+        idx = np.where(
+            (idx < self.n_buckets - 1) & (clipped >= self.bucket_start(idx + 1)), idx + 1, idx
+        )
+        idx = np.where(
+            (idx > 0) & (clipped < starts) & (clipped < self.bucket_start(idx)), idx - 1, idx
+        )
+        return idx.astype(np.int64)
 
 
 CPU_OPTIONS = HistogramOptions(first_bucket=0.01, ratio=1.05, max_value=1000.0)
