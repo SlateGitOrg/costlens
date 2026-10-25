@@ -123,9 +123,9 @@ def format_value(value: float) -> str:
     return repr(float(value))
 
 
-def build_response(series: Iterable[tuple[Mapping[str, str], Iterable[tuple[float, float]]]]) -> (
-    dict[str, Any]
-):
+def build_response(
+    series: Iterable[tuple[Mapping[str, str], Iterable[tuple[float, float]]]],
+) -> dict[str, Any]:
     """Build a range-query response object from ``(labels, [(ts, value), ...])`` pairs."""
     result = []
     for labels, points in series:
@@ -143,9 +143,10 @@ def write_file(path: Path, payload: Mapping[str, Any]) -> None:
     """Write a response; gzip (with a fixed mtime, so output is reproducible) for ``.gz``."""
     text = json.dumps(payload, separators=(",", ":"), sort_keys=True)
     if path.suffix == ".gz":
-        with path.open("wb") as raw, gzip.GzipFile(
-            filename="", mode="wb", fileobj=raw, mtime=0, compresslevel=9
-        ) as gz:
+        with (
+            path.open("wb") as raw,
+            gzip.GzipFile(filename="", mode="wb", fileobj=raw, mtime=0, compresslevel=9) as gz,
+        ):
             gz.write(text.encode("utf-8"))
     else:
         path.write_text(text, encoding="utf-8")

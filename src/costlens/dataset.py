@@ -185,7 +185,6 @@ class _Grid:
         return idx[keep].astype(np.int64), series.values[keep]
 
 
-
 def _load_metric(directory: Path, manifest: Manifest, name: str) -> list[tuple[str, Series]]:
     out: list[tuple[str, Series]] = []
     spec = METRICS[name]
@@ -388,7 +387,5 @@ def _fill[K](
 
 def _strip_label_prefix(labels: Mapping[str, str]) -> dict[str, str]:
     return {
-        k.removeprefix("label_"): v
-        for k, v in labels.items()
-        if k.startswith("label_") and v != ""
+        k.removeprefix("label_"): v for k, v in labels.items() if k.startswith("label_") and v != ""
     }

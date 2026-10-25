@@ -14,9 +14,8 @@ from costlens.money import (
     apportion_rows,
     spread_evenly,
     to_dollars,
-    to_micros,
+    to_nanos,
 )
-
 
 
 @st.composite
@@ -113,6 +112,7 @@ def test_spread_evenly_rejects_bad_input() -> None:
         spread_evenly(-1, 2)
 
 
-def test_micro_conversion_round_trip() -> None:
-    assert to_micros(1.2345675) == 1234568
-    assert to_dollars(1234568) == pytest.approx(1.234568)
+def test_nano_conversion_round_trip() -> None:
+    assert to_nanos(1.2345678905) == 1234567890 or to_nanos(1.2345678905) == 1234567891
+    assert to_nanos(73.0) == 73_000_000_000
+    assert to_dollars(1_234_567_890) == pytest.approx(1.23456789)

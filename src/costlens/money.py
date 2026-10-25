@@ -1,9 +1,9 @@
-"""Exact money arithmetic: integer micro-dollars and largest-remainder apportionment.
+"""Exact money arithmetic: integer nano-dollars and largest-remainder apportionment.
 
-Cost allocation is a conservation problem: every micro-dollar a node costs must land on exactly
+Cost allocation is a conservation problem: every nano-dollar a node costs must land on exactly
 one tenant (or on the explicit idle/shared buckets). Doing the split in floating point leaves
 the books off by rounding noise that grows with the number of splits, so costlens represents
-money as ``int64`` micro-dollars and splits integers with Hamilton's largest-remainder method.
+money as ``int64`` nano-dollars and splits integers with Hamilton's largest-remainder method.
 That makes ``sum(parts) == total`` an exact identity, which the property tests assert with
 ``==`` rather than ``approx``.
 """
@@ -15,20 +15,20 @@ import numpy.typing as npt
 
 from costlens.errors import ConfigError
 
-MICROS_PER_DOLLAR = 1_000_000
+NANOS_PER_DOLLAR = 1_000_000_000
 
 IntArray = npt.NDArray[np.int64]
 FloatArray = npt.NDArray[np.float64]
 
 
-def to_micros(dollars: float) -> int:
-    """Convert dollars to the nearest integer micro-dollar."""
-    return round(dollars * MICROS_PER_DOLLAR)
+def to_nanos(dollars: float) -> int:
+    """Convert dollars to the nearest integer nano-dollar."""
+    return round(dollars * NANOS_PER_DOLLAR)
 
 
-def to_dollars(micros: int | np.integer[npt.NBitBase] | float) -> float:
-    """Convert micro-dollars to (float) dollars, for display only."""
-    return float(micros) / MICROS_PER_DOLLAR
+def to_dollars(nanos: int | np.integer[npt.NBitBase] | float) -> float:
+    """Convert nano-dollars to (float) dollars, for display only."""
+    return float(nanos) / NANOS_PER_DOLLAR
 
 
 def apportion_rows(totals: IntArray, weights: FloatArray, fallback_col: int = -1) -> IntArray:

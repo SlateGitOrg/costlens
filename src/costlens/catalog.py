@@ -55,7 +55,7 @@ METRICS: dict[str, MetricSpec] = {
         ),
         MetricSpec(
             "cpu_request_cores",
-            'sum by (namespace, pod, container, node) '
+            "sum by (namespace, pod, container, node) "
             '(kube_pod_container_resource_requests{resource="cpu"})',
             CONTAINER_LABELS,
             True,
@@ -63,7 +63,7 @@ METRICS: dict[str, MetricSpec] = {
         ),
         MetricSpec(
             "memory_request_bytes",
-            'sum by (namespace, pod, container, node) '
+            "sum by (namespace, pod, container, node) "
             '(kube_pod_container_resource_requests{resource="memory"})',
             CONTAINER_LABELS,
             True,
@@ -71,7 +71,7 @@ METRICS: dict[str, MetricSpec] = {
         ),
         MetricSpec(
             "cpu_limit_cores",
-            'sum by (namespace, pod, container, node) '
+            "sum by (namespace, pod, container, node) "
             '(kube_pod_container_resource_limits{resource="cpu"})',
             CONTAINER_LABELS,
             False,
@@ -79,7 +79,7 @@ METRICS: dict[str, MetricSpec] = {
         ),
         MetricSpec(
             "memory_limit_bytes",
-            'sum by (namespace, pod, container, node) '
+            "sum by (namespace, pod, container, node) "
             '(kube_pod_container_resource_limits{resource="memory"})',
             CONTAINER_LABELS,
             False,
@@ -255,10 +255,10 @@ def export_script(prometheus_url: str, step_seconds: int, chunk_seconds: int) ->
     for spec in METRICS.values():
         query = render_promql(spec, step_seconds).replace("'", "'\"'\"'")
         lines.append(
-            f"  curl -fsS --get \"$PROM/api/v1/query_range\" --data-urlencode '"
-            f"query={query}' --data-urlencode \"start=$t\" --data-urlencode "
-            f"\"end=$((e - STEP))\" --data-urlencode \"step=$STEP\" "
-            f"| gzip -n > \"$OUT/{spec.name}.$i.json.gz\"",
+            f'  curl -fsS --get "$PROM/api/v1/query_range" --data-urlencode \''
+            f'query={query}\' --data-urlencode "start=$t" --data-urlencode '
+            f'"end=$((e - STEP))" --data-urlencode "step=$STEP" '
+            f'| gzip -n > "$OUT/{spec.name}.$i.json.gz"',
         )
     lines += [
         "  i=$((i + 1)); t=$e",
