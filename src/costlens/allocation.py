@@ -161,7 +161,7 @@ def _split_node_resource(
     capacity: FloatArray,
     amounts: FloatArray,
     columns: npt.NDArray[np.int64],
-) -> tuple[IntArray, IntArray, int]:
+) -> tuple[IntArray, IntArray, npt.NDArray[np.bool_]]:
     """Split one node's per-step cost for one resource across its containers and idle.
 
     Weights are ``[amount_1, ..., amount_k, max(capacity - sum(amount), 0)]`` so a container
@@ -172,7 +172,7 @@ def _split_node_resource(
     used = sub.sum(axis=1)
     cap = np.nan_to_num(capacity, nan=0.0)
     idle_weight = np.maximum(cap - used, 0.0)
-    over = int(np.count_nonzero((used > cap) & (totals > 0)))
+    over = (used > cap) & (totals > 0)
     weights = np.concatenate([sub, idle_weight[:, None]], axis=1)
     out = apportion_rows(totals, weights, fallback_col=-1)
     return out[:, :-1], out[:, -1], over
@@ -234,7 +234,7 @@ def allocate(
         mem_part, mem_idle, over_m = _split_node_resource(
             node_costs.memory_nanos[:, j], dataset.node_memory[:, j], mem_amount, cols
         )
-        overcommitted += max(over_c, over_m)
+        overcommitted += int(np.count_nonzero(over_c | over_m))
         container_cpu[:, cols] = cpu_part
         container_mem[:, cols] = mem_part
         if config.idle is IdleStrategy.PER_NODE and cols.size:
