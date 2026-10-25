@@ -10,7 +10,7 @@ import numpy as np
 import pytest
 
 from costlens.catalog import METRICS, Manifest, write_manifest
-from costlens.dataset import load_dataset, workload_name
+from costlens.dataset import fill_gaps, load_dataset, workload_name
 from costlens.errors import DataQualityError, ExportFormatError
 from costlens.promjson import build_response, write_file
 
@@ -30,6 +30,7 @@ def _minimal(
     tmp_path: Path,
     *,
     usage_ts_offset: float = 0.0,
+    request_gap: bool = False,
     extra_node: bool = False,
     orphan_node: str | None = None,
     split_node: bool = False,
@@ -67,7 +68,7 @@ def _minimal(
         usage_series.append(({**c, "node": "n2"}, [(ts[0], 0.5)]))
     put("cpu_usage_cores", usage_series)
     put("memory_working_set_bytes", [(c, [(t, 1e9) for t in ts])])
-    put("cpu_request_cores", [(c, [(t, 1.0) for t in ts])])
+    put("cpu_request_cores", [(c, [(t, 1.0) for t in (ts[1:] if request_gap else ts)])])
     put("memory_request_bytes", [(c, [(t, 2e9) for t in ts])])
     if orphan_node:
         o = {**c, "pod": "lost", "node": orphan_node}
@@ -118,8 +119,14 @@ def test_minimal_export_loads(tmp_path: Path) -> None:
     assert c.pod_labels == {"app": "web"}
     assert ds.label_of(c, "team") == "red"
     assert ds.label_of(c, "app") == "web"
-    # usage missing at step 0 while the container is present -> 0, not NaN
-    assert ds.cpu_usage[:, 0].tolist()[:1] == [0.0]
+    # usage missing at step 0 while the container is present -> a gap (NaN), reported, and
+    # filled from the neighbouring sample only for cost allocation
+    assert ds.present[0, 0]
+    assert np.isnan(ds.cpu_usage[0, 0])
+    assert any("1 container-steps had no cpu usage sample" in w for w in ds.warnings)
+    filled_cpu, filled_mem = ds.filled_usage()
+    assert filled_cpu[:3, 0].tolist() == [0.5, 0.5, 0.5]
+    assert filled_mem[:3, 0].tolist() == [1e9, 1e9, 1e9]
     assert ds.oom_events[:, 0].tolist() == [0.0, 0.0, 1.0, 0.0]
     # node memory missing at the last step -> whole node-step dropped, container too
     assert ds.node_present[:, 0].tolist() == [True, True, True, False]
@@ -217,3 +224,56 @@ def test_simulated_export_round_trips(small_export: Path, tmp_path: Path) -> Non
     shutil.copytree(small_export, copy)
     assert load_dataset(copy).n_steps == ds.n_steps
     assert set(METRICS) >= set(json.loads((copy / "manifest.json").read_text())["metrics"])
+
+
+def test_fill_gaps_uses_neighbouring_samples_only_at_present_steps() -> None:
+    nan = np.nan
+    values = np.array(
+        [
+            [nan, 1.0, nan, nan],
+            [2.0, nan, nan, nan],
+            [nan, nan, nan, 7.0],
+            [3.0, nan, nan, nan],
+            [nan, nan, nan, nan],
+        ]
+    )
+    present = np.array(
+        [
+            [True, True, True, False],
+            [True, True, True, True],
+            [True, True, True, True],
+            [True, False, True, True],
+            [False, False, False, True],
+        ]
+    )
+    out = fill_gaps(values, present)
+    # leading gap -> first sample; later gaps -> latest earlier sample; never sampled -> 0;
+    # absent steps stay NaN; the input is not modified
+    assert out[:, 0].tolist()[:4] == [2.0, 2.0, 2.0, 3.0]
+    assert np.isnan(out[4, 0])
+    assert out[:3, 1].tolist() == [1.0, 1.0, 1.0]
+    assert np.isnan(out[3, 1])
+    assert out[:4, 2].tolist() == [0.0, 0.0, 0.0, 0.0]
+    assert np.isnan(out[0, 3])
+    assert out[1:, 3].tolist() == [7.0, 7.0, 7.0, 7.0]
+    assert np.isnan(values[0, 0])
+    no_gaps = fill_gaps(np.ones((2, 1)), np.ones((2, 1), dtype=bool))
+    assert no_gaps.tolist() == [[1.0], [1.0]]
+
+
+def test_request_gap_takes_neighbouring_request_and_warns(tmp_path: Path) -> None:
+    ds = load_dataset(_minimal(tmp_path, request_gap=True))
+    assert ds.cpu_request[:3, 0].tolist() == [1.0, 1.0, 1.0]
+    assert any("1 container-steps had no cpu request sample" in w for w in ds.warnings)
+    # memory requests have no gap, so nothing is reported for them
+    assert not any("memory request" in w for w in ds.warnings)
+
+
+def test_container_without_any_request_is_best_effort(tmp_path: Path) -> None:
+    root = _minimal(tmp_path)
+    manifest = json.loads((root / "manifest.json").read_text())
+    manifest["metrics"]["cpu_request_cores"] = []
+    (root / "manifest.json").write_text(json.dumps(manifest))
+    ds = load_dataset(root)
+    assert ds.cpu_request[:3, 0].tolist() == [0.0, 0.0, 0.0]
+    assert not any("request sample" in w for w in ds.warnings)

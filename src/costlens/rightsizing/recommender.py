@@ -179,7 +179,9 @@ def recommend(
         min_mem = config.pod_min_memory_mib * MIB / per_pod
         rows_present = np.flatnonzero(present.any(axis=1))
         lifespan_days = (rows_present[-1] - rows_present[0] + 1) * dataset.step_seconds / 86400
-        sample_days = int(present.sum()) * dataset.step_seconds / 86400
+        # Usage gaps (present, but no CPU sample) are not evidence: they must not narrow bounds.
+        measured = present & ~np.isnan(dataset.cpu_usage[:, cols])
+        sample_days = int(measured.sum()) * dataset.step_seconds / 86400
         confidence = max(min(lifespan_days, sample_days), 1e-6)
         upper_mult = 1.0 + 1.0 / confidence
         lower_mult = (1.0 + 0.001 / confidence) ** -2
@@ -199,7 +201,7 @@ def recommend(
                 current_memory_request=_latest(dataset.memory_request[:, cols], present),
                 current_cpu_limit=_latest(dataset.cpu_limit[:, cols], present),
                 current_memory_limit=_latest(dataset.memory_limit[:, cols], present),
-                samples=int(present.sum()),
+                samples=int(measured.sum()),
                 oom_events=oom_count,
                 confidence_days=confidence,
             ),

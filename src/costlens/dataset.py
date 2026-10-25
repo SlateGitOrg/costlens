@@ -8,8 +8,16 @@ The :class:`ClusterDataset` is the single in-memory model every analysis consume
   limits, a presence mask, the node each pod ran on, its labels and its workload.
 
 Ingestion is strict about structure (misaligned timestamps or missing required labels raise)
-and lenient about gaps (missing samples become "absent"); every repair it performs is recorded
-in :attr:`ClusterDataset.warnings` so reports can surface data-quality issues.
+and lenient about gaps; every repair it performs is recorded in :attr:`ClusterDataset.warnings`
+so reports can surface data-quality issues. Gap handling:
+
+* a step with no usage, request or limit sample at all is "absent" (``present`` is False);
+* a present step without a usage sample (scrape gap, cAdvisor restart) keeps ``NaN`` usage, so
+  rightsizing histograms skip it instead of learning a fake zero; cost allocation fills it from
+  the container's neighbouring samples via :meth:`ClusterDataset.filled_usage`;
+* a present step without a request sample takes the container's neighbouring request (pod
+  requests are immutable), and a container that never reported a request is charged ``0``
+  (Kubernetes BestEffort semantics).
 """
 
 from __future__ import annotations
@@ -113,6 +121,14 @@ class ClusterDataset:
         """``(S, N)`` mask of steps at which each node existed."""
         return ~np.isnan(self.node_cpu)
 
+    def filled_usage(self) -> tuple[FloatMatrix, FloatMatrix]:
+        """CPU and memory usage with present-step gaps filled from neighbouring samples.
+
+        Used where every present step must carry an amount (cost allocation); rightsizing uses
+        the raw arrays so a gap is never mistaken for a measurement.
+        """
+        return fill_gaps(self.cpu_usage, self.present), fill_gaps(self.memory_usage, self.present)
+
     def container_node_indices(self) -> npt.NDArray[np.int64]:
         """``(C,)`` node index of every container."""
         return np.array([c.node_index for c in self.containers], dtype=np.int64)
@@ -161,6 +177,31 @@ def workload_name(pod: str, owner_kind: str, owner_name: str) -> str:
     if owner_kind:
         return f"{owner_kind}/{owner_name}"
     return f"Pod/{pod}"
+
+
+def fill_gaps(values: FloatMatrix, present: BoolMatrix) -> FloatMatrix:
+    """Fill ``NaN`` at present steps of each column from that column's samples.
+
+    A gap takes the most recent earlier sample (Prometheus' own lookback behaviour); a gap
+    before the first sample takes the first sample; a column without any sample becomes ``0``.
+    Absent steps stay ``NaN``. ``O(S * C)`` time and memory.
+    """
+    out = np.array(values, dtype=np.float64, copy=True)
+    observed = ~np.isnan(out)
+    gaps = present & ~observed
+    if not np.any(gaps):
+        return out
+    n = out.shape[0]
+    steps = np.arange(n, dtype=np.int64)[:, None]
+    prev = np.maximum.accumulate(np.where(observed, steps, -1), axis=0)
+    after = np.where(observed, steps, n)
+    nxt = np.minimum.accumulate(after[::-1], axis=0)[::-1]
+    source = np.where(prev >= 0, prev, nxt)
+    has_source = source < n
+    cols = np.broadcast_to(np.arange(out.shape[1], dtype=np.int64)[None, :], out.shape)
+    filled = np.where(has_source, out[np.minimum(source, n - 1), cols], 0.0)
+    out[gaps] = filled[gaps]
+    return out
 
 
 class _Grid:
@@ -292,11 +333,25 @@ def load_dataset(directory: Path) -> ClusterDataset:
                 f"{int(orphan.sum())} container-steps on a node without capacity data; dropped",
             )
             present &= node_alive
-    for arr in (cpu_usage, memory_usage, cpu_request, memory_request):
+    for arr in (cpu_usage, memory_usage, cpu_request, memory_request, cpu_limit, memory_limit):
         arr[~present] = np.nan
-        arr[present & np.isnan(arr)] = 0.0
-    for arr in (cpu_limit, memory_limit):
-        arr[~present] = np.nan
+    for metric, arr in (("cpu", cpu_usage), ("memory", memory_usage)):
+        gaps = int((present & np.isnan(arr)).sum())
+        if gaps:
+            warnings.append(
+                f"{gaps} container-steps had no {metric} usage sample while the container was "
+                "present (scrape gap?); left out of rightsizing, filled from neighbouring "
+                "samples for cost allocation",
+            )
+    for metric, arr in (("cpu", cpu_request), ("memory", memory_request)):
+        reported = ~np.all(np.isnan(arr), axis=0)
+        gaps = int((present & np.isnan(arr) & reported[None, :]).sum())
+        if gaps:
+            warnings.append(
+                f"{gaps} container-steps had no {metric} request sample; "
+                "filled from the container's neighbouring request samples",
+            )
+        arr[:] = fill_gaps(arr, present)
 
     # ---- metadata ------------------------------------------------------------------------
     pod_labels: dict[tuple[str, str], dict[str, str]] = {}

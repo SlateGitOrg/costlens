@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 
 import numpy as np
@@ -57,6 +58,37 @@ def test_recommendation_tracks_usage_with_margin() -> None:
     assert rec.lower_memory <= rec.target_memory <= rec.upper_memory
     assert rec.confidence_days == pytest.approx(14.0)
     assert np.isnan(rec.current_cpu_limit)
+
+
+def test_usage_gaps_do_not_lower_the_recommendation() -> None:
+    base = steady()
+    spread = np.random.default_rng(1).uniform(0.1, 1.0, base.cpu_usage.shape)  # type: ignore[attr-defined]
+    full = replace(base, cpu_usage=spread)  # type: ignore[type-var]
+    gap = np.zeros(full.present.shape, dtype=bool)  # type: ignore[attr-defined]
+    gap[::2] = True  # every other scrape lost while the pod kept running
+    gappy = replace(full, cpu_usage=np.where(gap, np.nan, full.cpu_usage))  # type: ignore[attr-defined,type-var]
+    unsampled = replace(gappy, present=full.present & ~gap)  # type: ignore[attr-defined]
+    zero_filled = replace(full, cpu_usage=np.where(gap, 0.0, full.cpu_usage))  # type: ignore[attr-defined,type-var]
+    (rec,) = recommend(gappy)
+    (reference,) = recommend(unsampled)
+    (biased,) = recommend(zero_filled)
+    # a gap contributes exactly nothing to the CPU histogram, as if it had never been sampled,
+    # and does not count as a sample that would narrow the confidence bounds
+    assert rec.target_cpu == reference.target_cpu
+    assert rec.upper_cpu == reference.upper_cpu
+    assert rec.samples == reference.samples == int((~gap).sum())
+    # filling the gaps with zero (the old behaviour) would have pushed the target down
+    assert biased.target_cpu < rec.target_cpu
+
+
+def test_backtest_does_not_score_usage_gaps() -> None:
+    ds = steady(steps=4, cpu=2.0)
+    cpu = ds.cpu_usage.copy()  # type: ignore[attr-defined]
+    cpu[:2] = np.nan
+    gappy = replace(ds, cpu_usage=cpu)  # type: ignore[type-var]
+    outcome = evaluate(gappy, (np.array([1.0]), np.array([1.0])), None, "baseline")
+    # both measured steps use ~2 cores against a 1-core request; the gaps are not counted
+    assert outcome.cpu_starved_pct == pytest.approx(100.0)
 
 
 def test_minimums_apply_per_container() -> None:

@@ -148,11 +148,15 @@ def basis_amounts(dataset: ClusterDataset, basis: CostBasis) -> tuple[FloatArray
     """``(S, C)`` CPU cores and memory bytes each container is charged for (0 when absent)."""
     if basis is CostBasis.REQUEST:
         cpu, mem = dataset.cpu_request, dataset.memory_request
-    elif basis is CostBasis.USAGE:
-        cpu, mem = dataset.cpu_usage, dataset.memory_usage
     else:
-        cpu = np.fmax(dataset.cpu_request, dataset.cpu_usage)
-        mem = np.fmax(dataset.memory_request, dataset.memory_usage)
+        # Usage gaps (present step, no sample) are filled from neighbouring samples: charging
+        # them as 0 would silently move the container's cost into idle.
+        used_cpu, used_mem = dataset.filled_usage()
+        if basis is CostBasis.USAGE:
+            cpu, mem = used_cpu, used_mem
+        else:
+            cpu = np.fmax(dataset.cpu_request, used_cpu)
+            mem = np.fmax(dataset.memory_request, used_mem)
     return np.nan_to_num(cpu, nan=0.0), np.nan_to_num(mem, nan=0.0)
 
 
@@ -313,6 +317,7 @@ def allocate(
 
     # ---- usage/efficiency metrics per row ------------------------------------------------
     hours_per_step = dataset.step_hours
+    used_cpu, used_mem = dataset.filled_usage()
 
     def per_row(values: FloatArray, scale: float) -> FloatArray:
         out = np.zeros(width)
@@ -332,9 +337,9 @@ def allocate(
         },
         node_total_nanos=node_costs.grand_total(),
         external_total_nanos=external_total,
-        cpu_used_core_hours=per_row(dataset.cpu_usage, hours_per_step),
+        cpu_used_core_hours=per_row(used_cpu, hours_per_step),
         cpu_requested_core_hours=per_row(dataset.cpu_request, hours_per_step),
-        memory_used_gib_hours=per_row(dataset.memory_usage, hours_per_step / GIB),
+        memory_used_gib_hours=per_row(used_mem, hours_per_step / GIB),
         memory_requested_gib_hours=per_row(dataset.memory_request, hours_per_step / GIB),
         overcommitted_node_steps=overcommitted,
         step_seconds=dataset.step_seconds,

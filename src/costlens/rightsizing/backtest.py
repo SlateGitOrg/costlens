@@ -156,9 +156,10 @@ def evaluate(
     cpu_seen = window.cpu_usage if demand is None else demand[0]
     mem_seen = window.memory_usage if demand is None else demand[1]
     usage = np.where(present, cpu_seen, np.nan)
-    n_samples = max(int(present.sum()), 1)
-    starved = np.nan_to_num(usage > cpu_req + 1e-9, nan=0.0).astype(bool) & present
-    limited = present & ~np.isnan(cpu_lim)
+    measured = present & ~np.isnan(usage)  # usage gaps cannot be scored either way
+    n_samples = max(int(measured.sum()), 1)
+    starved = measured & (np.nan_to_num(usage) > cpu_req + 1e-9)
+    limited = measured & ~np.isnan(cpu_lim)
     throttled = limited & (np.nan_to_num(usage) > np.nan_to_num(cpu_lim, nan=np.inf) + 1e-9)
     effective_mem_limit = np.where(np.isnan(mem_lim), mem_req, mem_lim)
     killed = present & (np.nan_to_num(mem_seen) > effective_mem_limit + 0.5)

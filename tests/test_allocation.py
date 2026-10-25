@@ -171,6 +171,25 @@ def test_usage_and_max_basis() -> None:
     assert maxed["a"] == 250_000_000 + 125_000_000
 
 
+def test_usage_gap_is_charged_at_neighbouring_usage_not_zero() -> None:
+    containers = [("a", "app", 0, {})]
+    req = np.array([[1.0], [1.0]])
+    ds = make_dataset(
+        [(4, 16)],
+        containers,
+        req,
+        np.zeros((2, 1)),
+        cpu_usage=np.array([[2.0], [np.nan]]),
+        memory_usage=np.zeros((2, 1)),
+    )
+    usage = run(ds, basis=CostBasis.USAGE, idle=IdleStrategy.KEEP)
+    assert usage["a"] == 2 * 250_000_000
+    maxed = run(ds, basis=CostBasis.MAX_REQUEST_USAGE, idle=IdleStrategy.KEEP)
+    assert maxed["a"] == 2 * 250_000_000
+    result = allocate(ds, price_nodes(ds, CATALOG), AllocationConfig(basis=CostBasis.USAGE))
+    assert result.cpu_used_core_hours.sum() == pytest.approx(4.0)
+
+
 def test_overcommit_allocates_whole_node_pro_rata() -> None:
     containers = [("a", "x", 0, {}), ("b", "y", 0, {})]
     use = np.array([[3.0, 3.0]])
