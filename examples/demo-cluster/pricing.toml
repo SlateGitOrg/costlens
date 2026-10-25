@@ -1,0 +1,25 @@
+# Pricing catalog for the simulated cluster.
+# Prices are illustrative approximations of public on-demand list prices; spot
+# prices are synthetic. Verify against your provider before relying on them.
+currency = "USD"
+cpu_to_memory_cost_ratio = 7.5
+default_spot_discount = 0.65
+
+[[instance]]
+type = "m5.2xlarge"
+vcpu = 8
+memory_gib = 32
+on_demand_hourly = 0.384
+
+[[instance]]
+type = "r5.xlarge"
+vcpu = 4
+memory_gib = 32
+on_demand_hourly = 0.252
+
+[[instance]]
+type = "c5.2xlarge"
+vcpu = 8
+memory_gib = 16
+on_demand_hourly = 0.9714
+spot_hourly = 0.34

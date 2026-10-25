@@ -1,0 +1,21 @@
+# Example allocation policy for the bundled demo cluster.
+# Charge each container max(request, usage), spread idle capacity proportionally,
+# treat the platform namespaces as shared overhead, and add two monthly external costs.
+
+[allocation]
+basis = "max_request_usage"   # request | usage | max_request_usage
+idle = "proportional"         # keep | proportional | even | per_node
+group_by = "team"             # namespace | team | workload | node | pod | container | label:<name>
+team_label = "team"           # pod label first, then namespace label
+
+[shared]
+namespaces = ["kube-system", "monitoring"]
+strategy = "proportional"     # keep | even | proportional | weighted
+
+[[shared.external]]
+name = "eks-control-plane"
+monthly_usd = 73.0
+
+[[shared.external]]
+name = "ingress-load-balancer"
+monthly_usd = 18.40

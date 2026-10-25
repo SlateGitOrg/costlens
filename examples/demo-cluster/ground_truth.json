@@ -1,0 +1,170 @@
+{
+  "description": "Costs computed directly from the simulation (independent of the costlens ingestion and allocation code).",
+  "scenarios": {
+    "max_request_usage/keep/namespace": {
+      "basis": "max_request_usage",
+      "group_by": "namespace",
+      "idle": "keep",
+      "idle_usd": 1415.604493661367,
+      "shared_namespaces": [],
+      "shared_usd": 0.0,
+      "tenants_usd": {
+        "data-pipelines": 60.271032564967115,
+        "kube-system": 30.294631187955645,
+        "ml-training": 57.12000000000002,
+        "monitoring": 67.91554090456219,
+        "payments": 280.15715229722275,
+        "sandbox": 39.950906597923925,
+        "search": 201.96088830387015,
+        "storefront-api": 70.24304720474007,
+        "storefront-web": 53.650307277391335
+      }
+    },
+    "max_request_usage/keep/team": {
+      "basis": "max_request_usage",
+      "group_by": "team",
+      "idle": "keep",
+      "idle_usd": 1415.604493661367,
+      "shared_namespaces": [],
+      "shared_usd": 0.0,
+      "tenants_usd": {
+        "__unlabelled__": 39.950906597923925,
+        "data": 117.3910325649671,
+        "media": 21.2784515386531,
+        "payments": 280.15715229722275,
+        "platform": 98.21017209251781,
+        "search": 201.96088830387015,
+        "storefront": 102.61490294347827
+      }
+    },
+    "max_request_usage/proportional/namespace": {
+      "basis": "max_request_usage",
+      "group_by": "namespace",
+      "idle": "proportional",
+      "idle_usd": 0.0,
+      "shared_namespaces": [],
+      "shared_usd": 0.0,
+      "tenants_usd": {
+        "data-pipelines": 160.2465629505664,
+        "kube-system": 81.02755578396736,
+        "ml-training": 137.4661740675843,
+        "monitoring": 181.22507692727302,
+        "payments": 746.9204506718745,
+        "sandbox": 106.52690554330351,
+        "search": 533.2978406624143,
+        "storefront-api": 187.4024082247106,
+        "storefront-web": 143.0550251683061
+      }
+    },
+    "max_request_usage/proportional/team": {
+      "basis": "max_request_usage",
+      "group_by": "team",
+      "idle": "proportional",
+      "idle_usd": 0.0,
+      "shared_namespaces": [],
+      "shared_usd": 0.0,
+      "tenants_usd": {
+        "__unlabelled__": 106.52690554330351,
+        "data": 297.7127370181507,
+        "media": 56.835344914819046,
+        "payments": 746.9204506718747,
+        "platform": 262.2526327112403,
+        "search": 533.2978406624143,
+        "storefront": 273.62208847819767
+      }
+    },
+    "request/keep/namespace": {
+      "basis": "request",
+      "group_by": "namespace",
+      "idle": "keep",
+      "idle_usd": 1428.936344799587,
+      "shared_namespaces": [],
+      "shared_usd": 0.0,
+      "tenants_usd": {
+        "data-pipelines": 60.221368421052645,
+        "kube-system": 30.29830041706651,
+        "ml-training": 57.12000000000002,
+        "monitoring": 67.91646513988337,
+        "payments": 278.47095652173914,
+        "sandbox": 39.96939130434782,
+        "search": 201.68978209197604,
+        "storefront-api": 58.902260869565204,
+        "storefront-web": 53.643130434782634
+      }
+    },
+    "request/keep/team": {
+      "basis": "request",
+      "group_by": "team",
+      "idle": "keep",
+      "idle_usd": 1428.936344799587,
+      "shared_namespaces": [],
+      "shared_usd": 0.0,
+      "tenants_usd": {
+        "__unlabelled__": 39.96939130434782,
+        "data": 117.34136842105264,
+        "media": 19.98469565217391,
+        "payments": 278.47095652173914,
+        "platform": 98.21476555694989,
+        "search": 201.68978209197604,
+        "storefront": 92.5606956521739
+      }
+    },
+    "request/proportional/namespace": {
+      "basis": "request",
+      "group_by": "namespace",
+      "idle": "proportional",
+      "idle_usd": 0.0,
+      "shared_namespaces": [],
+      "shared_usd": 0.0,
+      "tenants_usd": {
+        "data-pipelines": 162.33482992867278,
+        "kube-system": 82.36012009777664,
+        "ml-training": 139.21602847897282,
+        "monitoring": 184.18801189130426,
+        "payments": 754.6500678897569,
+        "sandbox": 108.31615705310954,
+        "search": 541.1072898003358,
+        "storefront-api": 159.6238103940562,
+        "storefront-web": 145.37168446601547
+      }
+    },
+    "request/proportional/team": {
+      "basis": "request",
+      "group_by": "team",
+      "idle": "proportional",
+      "idle_usd": 0.0,
+      "shared_namespaces": [],
+      "shared_usd": 0.0,
+      "tenants_usd": {
+        "__unlabelled__": 108.31615705310954,
+        "data": 301.5508584076455,
+        "media": 54.15807852655477,
+        "payments": 754.6500678897569,
+        "platform": 266.54813198908084,
+        "search": 541.1072898003358,
+        "storefront": 250.83741633351696
+      }
+    },
+    "request/proportional/team/shared-platform": {
+      "basis": "request",
+      "group_by": "team",
+      "idle": "proportional",
+      "idle_usd": 0.0,
+      "shared_namespaces": [
+        "kube-system",
+        "monitoring"
+      ],
+      "shared_usd": 0.0,
+      "tenants_usd": {
+        "__unlabelled__": 122.85139816930479,
+        "data": 339.58519770809704,
+        "media": 61.42569908465239,
+        "payments": 855.9186227716696,
+        "search": 612.8891075584124,
+        "storefront": 284.4979747078637
+      }
+    }
+  },
+  "seed": 7,
+  "total_node_cost_usd": 2277.168
+}

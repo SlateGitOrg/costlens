@@ -1,0 +1,135 @@
+{
+  "cluster": "demo-shop",
+  "end": 1776038400,
+  "extra": {
+    "generator": "costlens.synth",
+    "seed": 7,
+    "truth_files": {
+      "true_cpu_demand_cores": [
+        "true_cpu_demand_cores.00.json.gz",
+        "true_cpu_demand_cores.01.json.gz",
+        "true_cpu_demand_cores.02.json.gz",
+        "true_cpu_demand_cores.03.json.gz",
+        "true_cpu_demand_cores.04.json.gz",
+        "true_cpu_demand_cores.05.json.gz"
+      ],
+      "true_memory_demand_bytes": [
+        "true_memory_demand_bytes.00.json.gz",
+        "true_memory_demand_bytes.01.json.gz",
+        "true_memory_demand_bytes.02.json.gz",
+        "true_memory_demand_bytes.03.json.gz",
+        "true_memory_demand_bytes.04.json.gz",
+        "true_memory_demand_bytes.05.json.gz"
+      ]
+    }
+  },
+  "format": "costlens-export/v1",
+  "metrics": {
+    "cpu_limit_cores": [
+      "cpu_limit_cores.00.json.gz",
+      "cpu_limit_cores.01.json.gz",
+      "cpu_limit_cores.02.json.gz",
+      "cpu_limit_cores.03.json.gz",
+      "cpu_limit_cores.04.json.gz",
+      "cpu_limit_cores.05.json.gz"
+    ],
+    "cpu_request_cores": [
+      "cpu_request_cores.00.json.gz",
+      "cpu_request_cores.01.json.gz",
+      "cpu_request_cores.02.json.gz",
+      "cpu_request_cores.03.json.gz",
+      "cpu_request_cores.04.json.gz",
+      "cpu_request_cores.05.json.gz"
+    ],
+    "cpu_usage_cores": [
+      "cpu_usage_cores.00.json.gz",
+      "cpu_usage_cores.01.json.gz",
+      "cpu_usage_cores.02.json.gz",
+      "cpu_usage_cores.03.json.gz",
+      "cpu_usage_cores.04.json.gz",
+      "cpu_usage_cores.05.json.gz"
+    ],
+    "memory_limit_bytes": [
+      "memory_limit_bytes.00.json.gz",
+      "memory_limit_bytes.01.json.gz",
+      "memory_limit_bytes.02.json.gz",
+      "memory_limit_bytes.03.json.gz",
+      "memory_limit_bytes.04.json.gz",
+      "memory_limit_bytes.05.json.gz"
+    ],
+    "memory_request_bytes": [
+      "memory_request_bytes.00.json.gz",
+      "memory_request_bytes.01.json.gz",
+      "memory_request_bytes.02.json.gz",
+      "memory_request_bytes.03.json.gz",
+      "memory_request_bytes.04.json.gz",
+      "memory_request_bytes.05.json.gz"
+    ],
+    "memory_working_set_bytes": [
+      "memory_working_set_bytes.00.json.gz",
+      "memory_working_set_bytes.01.json.gz",
+      "memory_working_set_bytes.02.json.gz",
+      "memory_working_set_bytes.03.json.gz",
+      "memory_working_set_bytes.04.json.gz",
+      "memory_working_set_bytes.05.json.gz"
+    ],
+    "namespace_labels": [
+      "namespace_labels.00.json.gz",
+      "namespace_labels.01.json.gz",
+      "namespace_labels.02.json.gz",
+      "namespace_labels.03.json.gz",
+      "namespace_labels.04.json.gz",
+      "namespace_labels.05.json.gz"
+    ],
+    "node_cpu_capacity_cores": [
+      "node_cpu_capacity_cores.00.json.gz",
+      "node_cpu_capacity_cores.01.json.gz",
+      "node_cpu_capacity_cores.02.json.gz",
+      "node_cpu_capacity_cores.03.json.gz",
+      "node_cpu_capacity_cores.04.json.gz",
+      "node_cpu_capacity_cores.05.json.gz"
+    ],
+    "node_labels": [
+      "node_labels.00.json.gz",
+      "node_labels.01.json.gz",
+      "node_labels.02.json.gz",
+      "node_labels.03.json.gz",
+      "node_labels.04.json.gz",
+      "node_labels.05.json.gz"
+    ],
+    "node_memory_capacity_bytes": [
+      "node_memory_capacity_bytes.00.json.gz",
+      "node_memory_capacity_bytes.01.json.gz",
+      "node_memory_capacity_bytes.02.json.gz",
+      "node_memory_capacity_bytes.03.json.gz",
+      "node_memory_capacity_bytes.04.json.gz",
+      "node_memory_capacity_bytes.05.json.gz"
+    ],
+    "oom_events": [
+      "oom_events.00.json.gz",
+      "oom_events.01.json.gz",
+      "oom_events.02.json.gz",
+      "oom_events.03.json.gz",
+      "oom_events.04.json.gz",
+      "oom_events.05.json.gz"
+    ],
+    "pod_labels": [
+      "pod_labels.00.json.gz",
+      "pod_labels.01.json.gz",
+      "pod_labels.02.json.gz",
+      "pod_labels.03.json.gz",
+      "pod_labels.04.json.gz",
+      "pod_labels.05.json.gz"
+    ],
+    "pod_owner": [
+      "pod_owner.00.json.gz",
+      "pod_owner.01.json.gz",
+      "pod_owner.02.json.gz",
+      "pod_owner.03.json.gz",
+      "pod_owner.04.json.gz",
+      "pod_owner.05.json.gz"
+    ]
+  },
+  "start": 1772409600,
+  "step_seconds": 900
+}
