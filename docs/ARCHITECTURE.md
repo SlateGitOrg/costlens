@@ -149,7 +149,8 @@ tenants plus `__idle__` and `__shared__`.
 same facts, plus that the idle strategy never changes a tenant's own CPU and memory cost.
 
 **Complexity.** Total time is `O(S·C + S·T log T)` and memory is `O(S·(C + T))`. The
-benchmark shows linear scaling: 657 ms for 2,000 containers × 2,016 steps.
+benchmark shows roughly linear scaling: 0.7–1.0 s for 2,000 containers × 2,016 steps,
+depending on machine load.
 
 ## Rightsizing
 

@@ -245,25 +245,27 @@ regenerates the bundled fixture from its seed and compares it with the committed
 
 ### Benchmarks: `make bench`
 
-Measured on an Apple-silicon laptop (arm64, Python 3.12, numpy 2.5) shared with other jobs.
+These are two runs of `scripts/bench.py` on the same Apple-silicon laptop (arm64, Python 3.12,
+numpy 2.5). The laptop was shared with other build jobs, and run B was under heavier load.
 Treat the figures as orders of magnitude.
 
-| stage (bundled fixture: 4032 steps x 495 containers x 7 nodes) | time |
-| :--- | ---: |
-| load_dataset (78 gzip JSON files) | 862 ms |
-| allocate, idle=proportional / per_node | 159 / 225 ms |
-| recommend (19 workload containers) | 74 ms |
-| backtest (7 policies, fit twice, 3 windows) | 922 ms |
-
-| synthetic scale (2016 steps = 1 week @ 5 min) | allocate (per_node) | recommend |
+| stage (bundled fixture: 4032 steps x 495 containers x 7 nodes) | run A | run B |
 | :--- | ---: | ---: |
-| 250 containers x 10 nodes | 76 ms | 53 ms |
-| 1000 containers x 40 nodes | 327 ms | 237 ms |
-| 2000 containers x 80 nodes | 657 ms | 458 ms |
+| load_dataset (78 gzip JSON files) | 862 ms | 1,905 ms |
+| allocate, idle=proportional | 159 ms | 225 ms |
+| allocate, idle=per_node | 225 ms | 454 ms |
+| recommend (19 workload containers) | 74 ms | 233 ms |
+| backtest (7 policies, fit twice, 3 windows) | 922 ms | 1,335 ms |
 
-Allocation scales linearly in steps × containers (see `docs/ARCHITECTURE.md`). Peak RSS for
-the whole benchmark was about 1.1 GB, mostly the dense `(S, C)` float arrays of the largest
-synthetic case.
+| synthetic scale (2016 steps = 1 week @ 5 min), allocate per_node / recommend | run A | run B |
+| :--- | ---: | ---: |
+| 250 containers x 10 nodes | 76 / 53 ms | 119 / 83 ms |
+| 1000 containers x 40 nodes | 327 / 237 ms | 618 / 383 ms |
+| 2000 containers x 80 nodes | 657 / 458 ms | 1,004 / 622 ms |
+
+Allocation scales roughly linearly in steps × containers (see `docs/ARCHITECTURE.md`). Peak
+RSS for the whole benchmark was about 1.1 GB, mostly the dense `(S, C)` float arrays of the
+largest synthetic case.
 
 ## Design decisions
 
