@@ -92,6 +92,7 @@ class SimulatedCluster:
     cpu_usage: FloatMatrix
     memory_usage: FloatMatrix
     oom_events: FloatMatrix
+    memory_demand: FloatMatrix
 
     @property
     def timestamps(self) -> npt.NDArray[np.int64]:
@@ -240,13 +241,20 @@ def _demand(
 
 def _apply_leak_and_oom(
     mem: FloatMatrix, c: ContainerSpec, step_hours: float
-) -> tuple[FloatMatrix, FloatMatrix]:
-    """Add the memory leak (reset on restart) and record OOM kills against the limit."""
+) -> tuple[FloatMatrix, FloatMatrix, FloatMatrix]:
+    """Add the memory leak and record OOM kills against the limit.
+
+    Returns ``(observed, oom, uncensored)``: ``observed`` is what Prometheus sees (capped at the
+    limit, leak reset by each restart); ``uncensored`` is the memory the container would use if
+    it were never killed (leak accumulated since pod start) — the counterfactual demand the
+    rightsizing backtest scores policies against.
+    """
     limit = c.mem_limit_mib * MIB if c.mem_limit_mib is not None else np.inf
     leak_per_step = c.mem_leak_per_hour_mib * MIB * step_hours
+    uncensored = mem + leak_per_step * np.arange(mem.size)
     if leak_per_step == 0:
         hit = mem >= limit
-        return np.where(hit, limit, mem), hit.astype(np.float64)
+        return np.where(hit, limit, mem), hit.astype(np.float64), uncensored
     observed = mem.copy()
     oom = np.zeros_like(mem)
     since_restart = 0
@@ -259,7 +267,7 @@ def _apply_leak_and_oom(
         else:
             observed[k] = value
             since_restart += 1
-    return observed, oom
+    return observed, oom, uncensored
 
 
 def simulate(
@@ -283,7 +291,7 @@ def simulate(
     step_hours = step_seconds / 3600.0
 
     containers: list[SimContainer] = []
-    columns: list[tuple[FloatMatrix, FloatMatrix, FloatMatrix, FloatMatrix]] = []
+    columns: list[tuple[FloatMatrix, ...]] = []
 
     def add_pod(
         workload: WorkloadSpec, a: int, b: int, pod: str, kind: str, owner: str, node: int | None
@@ -301,7 +309,7 @@ def simulate(
         for c in workload.containers:
             ts = timestamps[a:b]
             cpu, mem = _demand(c, workload, ts, start, rng)
-            mem, oom = _apply_leak_and_oom(mem, c, step_hours)
+            mem, oom, mem_demand = _apply_leak_and_oom(mem, c, step_hours)
             usage = np.minimum(cpu, c.cpu_limit) if c.cpu_limit is not None else cpu
             columns.append(
                 (
@@ -309,6 +317,7 @@ def simulate(
                     _place(np.round(usage, 6), a, b, n_steps),
                     _place(np.round(mem), a, b, n_steps),
                     _place(oom, a, b, n_steps),
+                    _place(np.round(mem_demand), a, b, n_steps),
                 ),
             )
             containers.append(
@@ -361,6 +370,7 @@ def simulate(
         cpu_usage=stack(1),
         memory_usage=stack(2),
         oom_events=stack(3),
+        memory_demand=stack(4),
     )
 
 

@@ -119,6 +119,18 @@ def _metric_series(sim: SimulatedCluster, a: int, b: int) -> Iterator[tuple[str,
         yield "namespace_labels", (labels, _points(ts, np.ones(n), a, b))
 
 
+TRUTH_METRICS = ("true_cpu_demand_cores", "true_memory_demand_bytes")
+
+
+def _truth_series(sim: SimulatedCluster, a: int, b: int) -> Iterator[tuple[str, SeriesPoints]]:
+    """Uncensored demand per container (simulation-only; not something Prometheus has)."""
+    ts = sim.timestamps
+    for i, c in enumerate(sim.containers):
+        labels = _container_labels(sim, c)
+        yield "true_cpu_demand_cores", (labels, _points(ts, sim.cpu_demand[:, i], a, b))
+        yield "true_memory_demand_bytes", (labels, _points(ts, sim.memory_demand[:, i], a, b))
+
+
 def pricing_toml(sim: SimulatedCluster) -> str:
     """The pricing catalog matching the simulated node pools."""
     lines = [
@@ -157,22 +169,28 @@ def write_export(sim: SimulatedCluster, out_dir: Path, chunk_days: float = 7.0) 
     out_dir.mkdir(parents=True, exist_ok=True)
     chunk = max(1, int(chunk_days * 86400 // sim.step_seconds))
     files: dict[str, list[str]] = defaultdict(list)
+    truth_files: dict[str, list[str]] = defaultdict(list)
     for chunk_index, a in enumerate(range(0, sim.n_steps, chunk)):
         b = min(sim.n_steps, a + chunk)
-        grouped: dict[str, list[SeriesPoints]] = defaultdict(list)
-        for metric, series in _metric_series(sim, a, b):
-            grouped[metric].append(series)
-        for metric, series_list in sorted(grouped.items()):
-            name = f"{metric}.{chunk_index:02d}.json.gz"
-            write_file(out_dir / name, build_response(series_list))
-            files[metric].append(name)
+        for source, target in ((_metric_series, files), (_truth_series, truth_files)):
+            grouped: dict[str, list[SeriesPoints]] = defaultdict(list)
+            for metric, series in source(sim, a, b):
+                grouped[metric].append(series)
+            for metric, series_list in sorted(grouped.items()):
+                name = f"{metric}.{chunk_index:02d}.json.gz"
+                write_file(out_dir / name, build_response(series_list))
+                target[metric].append(name)
     manifest = Manifest(
         start=sim.start,
         end=sim.start + sim.n_steps * sim.step_seconds,
         step_seconds=sim.step_seconds,
         cluster=sim.spec.name,
         files=dict(files),
-        extra={"generator": "costlens.synth", "seed": sim.seed},
+        extra={
+            "generator": "costlens.synth",
+            "seed": sim.seed,
+            "truth_files": dict(sorted(truth_files.items())),
+        },
     )
     write_manifest(out_dir, manifest)
     (out_dir / "pricing.toml").write_text(pricing_toml(sim), encoding="utf-8")

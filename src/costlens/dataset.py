@@ -389,3 +389,34 @@ def _strip_label_prefix(labels: Mapping[str, str]) -> dict[str, str]:
     return {
         k.removeprefix("label_"): v for k, v in labels.items() if k.startswith("label_") and v != ""
     }
+
+
+def load_true_demand(
+    directory: Path, dataset: ClusterDataset
+) -> tuple[FloatMatrix, FloatMatrix] | None:
+    """Load simulation-only uncensored demand aligned to ``dataset`` (``None`` if absent).
+
+    Synthetic exports list ``true_cpu_demand_cores`` / ``true_memory_demand_bytes`` files under
+    ``extra.truth_files`` in the manifest. Real exports never have them.
+    """
+    manifest = load_manifest(directory)
+    truth_files = manifest.extra.get("truth_files")
+    if not isinstance(truth_files, dict):
+        return None
+    grid = _Grid(manifest)
+    index = {(c.namespace, c.pod, c.container): i for i, c in enumerate(dataset.containers)}
+    warnings: list[str] = []
+    arrays = []
+    for metric in ("true_cpu_demand_cores", "true_memory_demand_bytes"):
+        items = [
+            (rel, series)
+            for rel in truth_files.get(metric, [])
+            for series in load_file(directory / rel)
+        ]
+        if not items:
+            return None
+        arrays.append(_fill(grid, items, index, manifest.n_steps, _container_key, warnings))
+    cpu, mem = arrays
+    cpu[~dataset.present] = np.nan
+    mem[~dataset.present] = np.nan
+    return cpu, mem
