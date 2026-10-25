@@ -155,7 +155,7 @@ def pricing_toml(sim: SimulatedCluster) -> str:
         ]
         if pool.capacity_type == "spot":
             lines += [
-                f"on_demand_hourly = {pool.hourly_usd / 0.35:.4f}",
+                f"on_demand_hourly = {pool.hourly_usd / 0.35:.3f}",
                 f"spot_hourly = {pool.hourly_usd}",
             ]
         else:

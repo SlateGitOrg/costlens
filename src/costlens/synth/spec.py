@@ -22,7 +22,7 @@ class NodePoolSpec:
     capacity_type: str
     cores: float
     memory_gib: float
-    hourly_usd: float
+    hourly_usd: float  # price actually paid per node-hour (the spot price for spot pools)
     count: int
     zones: tuple[str, ...] = ("us-east-1a", "us-east-1b")
     late_nodes: int = 0  # extra nodes that join after ``late_join_day``
@@ -119,7 +119,7 @@ def default_spec() -> ClusterSpec:
             "spot",
             8,
             16,
-            0.34,
+            0.119,  # synthetic spot price: 65% below the 0.34 on-demand list price
             1,
             ("us-east-1c",),
             late_nodes=1,
