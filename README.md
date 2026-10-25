@@ -1,5 +1,7 @@
 # costlens
 
+[![CI](https://github.com/SlateGitOrg/costlens/actions/workflows/ci.yml/badge.svg)](https://github.com/SlateGitOrg/costlens/actions/workflows/ci.yml)
+
 Kubernetes cost allocation and rightsizing, computed offline from Prometheus range-query
 exports.
 
@@ -17,7 +19,7 @@ line by line, and rightsizing advice that comes with its measured risk. It is a 
 library, not a hosted service. Everything runs offline against files, and nothing in it talks
 to a live cluster.
 
-> **Status:** portfolio project. The bundled data is synthetic: a simulated six-week,
+> **Status:** the bundled data is synthetic: a simulated six-week,
 > seven-node, multi-team cluster with a known ground truth. costlens has not been run against
 > a production cluster. See [Limitations](#limitations).
 
@@ -36,6 +38,13 @@ to a live cluster.
 | Backtest: fit on train, select on validation, report on held-out test weeks | `rightsizing/backtest.py` |
 | Synthetic multi-team cluster generator with an independent ground-truth allocator | `synth/` |
 | Showback report (Markdown + CSV), CLI | `report/`, `cli.py` |
+
+## Why
+
+Cluster bills arrive as one number, but teams need to know who spent what, how much of it was
+idle, and which requests are padded. Most tools answer that from a live cluster and a
+floating-point ledger, so the totals drift and cannot be audited. costlens works from exported
+files and integer arithmetic, so every figure can be reproduced and checked against the total.
 
 ## Architecture
 
@@ -239,7 +248,7 @@ Takeaways:
 
 ### Tests and coverage: `make cov`
 
-`make check` runs 170 tests at 98.05% line+branch coverage (gate: 90%). The suite includes
+`make check` runs 176 tests at 98.08% line+branch coverage (gate: 90%). The suite includes
 Hypothesis property tests, a ground-truth end-to-end test, CLI tests, and a test that
 regenerates the bundled fixture from its seed and compares it with the committed copy.
 
@@ -286,6 +295,17 @@ The full list of rulings, each with its reason and the cost of being wrong, is i
   is then redistributed along with their own cost.
 - **Select on validation, report on test.** The backtest never tunes on the weeks it reports.
 
+## Project layout
+
+```text
+src/costlens/   promjson, catalog, dataset, pricing, allocation, rightsizing/, synth/, report/, cli.py
+tests/          unit, Hypothesis property and ground-truth tests
+examples/       demo-cluster fixture, allocation.toml
+docs/           ARCHITECTURE.md
+scripts/        bench.py
+DECISIONS.md    design rulings with reasons
+```
+
 ## Limitations
 
 - **Synthetic data only.** Every number in this README comes from simulated clusters. The
@@ -312,8 +332,6 @@ The full list of rulings, each with its reason and the cost of being wrong, is i
   was not validated against a running VPA.
 - **No live integrations.** There is no Prometheus client, no Kubernetes API access and no
   scheduling. `costlens queries --script` prints commands for a human to run.
-- The CI workflow (`.github/workflows/ci.yml`) is written but has not run, because the
-  repository has not been pushed.
 
 ## Roadmap
 
