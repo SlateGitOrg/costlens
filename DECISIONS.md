@@ -100,3 +100,15 @@ Each ruling made while building costlens is recorded as `what — why — cost i
   exceeds the 80% core-logic bar while tolerating defensive branches such as the
   negative-remainder path in apportionment — cost if wrong: an uncovered defensive branch
   could hide a bug that only pathological float input reaches.
+- Ruling (fix round 1): a usage gap (container present through a request sample but with no
+  usage sample at that step) stays `NaN` and is reported as a warning. The recommender's
+  histograms skip it and it does not count toward `samples` or confidence. The backtest leaves
+  it out of the starvation and throttling denominators. Cost allocation (`usage` and
+  `max_request_usage` bases, plus the used-hours efficiency columns) fills it from the
+  container's most recent earlier usage sample, or the first later one for a leading gap.
+  Request gaps take the neighbouring request because pod requests are immutable, and a
+  container that never reported a request stays at 0 (BestEffort) — the old zero-fill fed fake
+  idle samples into the histograms. A reviewer probe that dropped every other payments-api CPU
+  sample moved the p90+15% target from 0.411 to 0.351 cores with no warning — cost if wrong:
+  for a long gap, the forward-filled allocation charge can be stale. The warning makes that
+  visible, and the bundled fixture has no gaps, so no published number changes.

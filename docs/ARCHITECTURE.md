@@ -46,8 +46,8 @@ truth is independent of the code it checks.
 | --- | --- | --- |
 | `node_cpu`, `node_memory` | (S, N) | capacity; `NaN` = node absent at that step |
 | `present` | (S, C) | container exists (any usage/request sample) on a live node |
-| `cpu_usage`, `memory_usage` | (S, C) | cores / peak working-set bytes; 0 when present but unsampled |
-| `cpu_request`, `memory_request` | (S, C) | 0 for BestEffort containers |
+| `cpu_usage`, `memory_usage` | (S, C) | cores / peak working-set bytes; `NaN` when present but unsampled (a gap) |
+| `cpu_request`, `memory_request` | (S, C) | gaps take the container's neighbouring request; 0 for BestEffort containers |
 | `cpu_limit`, `memory_limit` | (S, C) | `NaN` = unlimited |
 | `oom_events` | (S, C) | OOM kills in the step |
 
@@ -64,8 +64,15 @@ detail:
   1% of a step, a missing required label, or a node with capacity but no labels.
 - **Repairs (each recorded as a warning):** samples outside the window are dropped,
   overlapping chunks that disagree resolve to the later file, a node-step with only CPU or only
-  memory capacity is dropped, containers on unknown nodes are skipped, and container-steps on
-  a node without capacity are dropped.
+  memory capacity is dropped, containers on unknown nodes are skipped, container-steps on
+  a node without capacity are dropped, and request gaps take the container's neighbouring
+  request sample.
+- **Usage gaps (also recorded as a warning):** a present container-step with no usage sample
+  (a scrape gap, a cAdvisor restart) stays `NaN`. Rightsizing histograms skip it and do not
+  count it as a sample, and the backtest does not score it. Cost allocation charges it at
+  the container's most recent earlier usage sample (`ClusterDataset.filled_usage`), the same
+  lookback Prometheus applies. Filling it with 0 would teach the recommender a fake idle
+  sample and move the container's cost into idle.
 
 ## Money: exact apportionment
 
