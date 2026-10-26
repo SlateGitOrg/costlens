@@ -278,7 +278,7 @@ largest synthetic case.
 
 ## Design decisions
 
-The full list of rulings, each with its reason and the cost of being wrong, is in
+The full list of design decisions, each with its reason and the cost of being wrong, is in
 [`DECISIONS.md`](DECISIONS.md). The main ones:
 
 - **Integer nano-dollars plus Hamilton apportionment.** Conservation is an identity rather
@@ -303,7 +303,7 @@ tests/          unit, Hypothesis property and ground-truth tests
 examples/       demo-cluster fixture, allocation.toml
 docs/           ARCHITECTURE.md
 scripts/        bench.py
-DECISIONS.md    design rulings with reasons
+DECISIONS.md    design decisions with reasons
 ```
 
 ## Limitations
